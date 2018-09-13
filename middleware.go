@@ -1,19 +1,19 @@
-package firebaseAuthMiddleware
+package fbauthmiddleware
 
 import (
 	"context"
 	"net/http"
 
-	fbAdmin "github.com/acoshift/go-firebase-admin"
+	"firebase.google.com/go/auth"
 )
 
 // FirebaseAuthMiddleware adds userID to request context
 type FirebaseAuthMiddleware struct {
-	Auth *fbAdmin.Auth
+	Auth *auth.Client
 }
 
 // NewFirebaseAuthMiddleWare creates a new middleware instance
-func NewFirebaseAuthMiddleWare(auth *fbAdmin.Auth) *FirebaseAuthMiddleware {
+func NewFirebaseAuthMiddleWare(auth *auth.Client) *FirebaseAuthMiddleware {
 	return &FirebaseAuthMiddleware{Auth: auth}
 }
 
@@ -26,13 +26,13 @@ func (m *FirebaseAuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		claims, err := m.Auth.VerifyIDToken(fbToken)
+		token, err := m.Auth.VerifyIDToken(context.Background(), fbToken)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		userID := claims.UserID
+		userID := token.UID
 
 		newContext := context.WithValue(r.Context(), "userID", userID)
 		next.ServeHTTP(w, r.WithContext(newContext))
